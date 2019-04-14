@@ -8,9 +8,9 @@ class MinesweeperService {
   private val random = new Random
   private val minesweepers = mutable.Map.empty[String, Minesweeper]
 
-  def create(): Minesweeper = {
+  def create(maybeMinesweeperField: Option[MinesweeperField] = None): Minesweeper = {
     val id = random.alphanumeric.take(10).mkString
-    val minesweeper = Minesweeper(id)
+    val minesweeper = maybeMinesweeperField.fold(Minesweeper(id)) { field ⇒ Minesweeper(id, field = field) }
     minesweepers.put(id, minesweeper)
     minesweeper
   }

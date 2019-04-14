@@ -1,3 +1,5 @@
+import minesweeper.MinesweeperField.random
+
 package object minesweeper {
   type Matrix = Seq[Seq[Cell]]
   type MoveResult = Either[MoveFailure, (MinesweeperField, Seq[Coordinates])]
@@ -20,5 +22,11 @@ package object minesweeper {
 
   object Coordinates {
     implicit def fromTuple(t: (Int, Int)): Coordinates = Coordinates(t._1, t._2)
+  }
+
+  def buildRandomBombsCoordinates(width: Int, height: Int, q: Int): Seq[Coordinates] = {
+    Range(1, q).foldLeft(Seq.empty[Coordinates]) { case (xs, _) ⇒
+      xs :+ Coordinates(random.nextInt(width), random.nextInt(height))
+    }
   }
 }

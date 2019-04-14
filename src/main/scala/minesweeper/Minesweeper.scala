@@ -13,7 +13,7 @@ object Won extends GameStatus("won")
 case class Minesweeper(id: String,
                        creationDateTime: Instant = Instant.now(),
                        status: GameStatus = New,
-                       field: MinesweeperField = MinesweeperField(10, 10, 10)) {
+                       field: MinesweeperField = MinesweeperField(10, 10, buildRandomBombsCoordinates(10, 10, 10))) {
 
   def update(field: MinesweeperField, status: GameStatus = Playing): Minesweeper = copy(
     creationDateTime = Instant.now(),
@@ -70,21 +70,16 @@ object MinesweeperField {
 
   implicit def fromMatrix(matrix: Matrix): MinesweeperField = MinesweeperField(matrix)
 
-  def apply(x: Int, y: Int, bombs: Int): MinesweeperField =
+  def apply(x: Int, y: Int, bombs: Seq[Coordinates]): MinesweeperField =
     concealed(addBombs(virgin(x, y), bombs))
 
-  def addBombs(field: MinesweeperField, bombs: Int): MinesweeperField =
-    Range(1, bombs).foldLeft(field) { case (_field, _) ⇒
-      addBomb(_field)
+  def addBombs(field: MinesweeperField, bombs: Seq[Coordinates]): MinesweeperField =
+    bombs.foldLeft(field) { case (_field, c) ⇒
+      addBomb(_field, c)
     }
 
-  def addBomb(field: MinesweeperField): MinesweeperField = {
-    val width = field.matrix.length
-    val height = field.matrix.head.length
-
-    val bombCoordinates: Coordinates = (random.nextInt(width), random.nextInt(height))
+  def addBomb(field: MinesweeperField, bombCoordinates: Coordinates): MinesweeperField = {
     val neighbourCoordinates: Seq[Coordinates] = field contiguous bombCoordinates
-
     val previousCell = field.elementAt(bombCoordinates).asInstanceOf[Underlying]
 
     neighbourCoordinates.foldLeft(
