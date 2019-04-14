@@ -1,6 +1,15 @@
 package object minesweeper {
-
   type Matrix = Seq[Seq[Cell]]
+  type MoveResult = Either[MoveFailure, (MinesweeperField, Seq[Coordinates])]
+
+  sealed trait MoveType
+  case class SuccessMove(minesweeper: Minesweeper, changedRows: Seq[Coordinates]) extends MoveType
+  object NoChangeMove extends MoveType
+
+  sealed trait MoveFailure
+  case class BoomFailure[T](t: T) extends MoveFailure
+  object ShovelledSpotFailure extends MoveFailure
+  object MarkedSpotFailure extends MoveFailure
 
   case class Coordinates(x: Int, y: Int) {
     def adjacents: Seq[Coordinates] =

@@ -1,7 +1,7 @@
 package minesweeper
 
 import scala.collection.mutable
-import scala.util.{Random, Try}
+import scala.util.Random
 
 class MinesweeperService {
 
@@ -15,16 +15,34 @@ class MinesweeperService {
     minesweeper
   }
 
-  def bombMark(id: String, c: (Int, Int)): Try[Minesweeper] = ???
+  def get(id: String): Option[Minesweeper] = minesweepers.get(id)
 
-  def questionMark(id: String, c: (Int, Int)): Try[Minesweeper] = ???
+  def bombMark(id: String, c: Coordinates): MoveType = move(id, _.field.markBomb(c))
 
-  def shovel(id: String, c: Coordinates): Try[Minesweeper] = {
-    val ms = minesweepers(id)
-    ms.field.shovel(c) map { case (field, changedCoordinates) ⇒
-      val newMs = ms.copy(field = field)
-      minesweepers.update(id, newMs)
-      newMs
-    }
+  def questionMark(id: String, c: Coordinates): MoveType = move(id, _.field.markQuestion(c))
+
+  def clearMark(id: String, c: Coordinates): MoveType = move(id, _.field.clearMark(c))
+
+  def shovel(id: String, c: Coordinates): MoveType = move(id, _.field.shovel(c))
+
+  def move(id: String, f: Minesweeper ⇒ MoveResult): MoveType = {
+    val minesweeper = minesweepers(id)
+    f(minesweeper)
+      .map { case (field, changedCoordinates) ⇒
+        val updatedMinesweeper = minesweeper.update(field)
+        minesweepers.update(id, updatedMinesweeper)
+        (updatedMinesweeper, changedCoordinates)
+      }
+      .fold ({
+        case ShovelledSpotFailure ⇒ NoChangeMove
+        case MarkedSpotFailure ⇒ NoChangeMove
+        case BoomFailure(field: MinesweeperField) ⇒
+          val updatedMinesweeper = minesweeper.update(field, Killed)
+          minesweepers.update(id, updatedMinesweeper)
+          SuccessMove(updatedMinesweeper, Seq.empty)
+        case f ⇒ throw new RuntimeException(s"Unexpected failure $f")
+      }, {
+        case (ms, cs) ⇒ SuccessMove(ms, cs)
+      })
   }
 }

@@ -9,7 +9,7 @@ object Json4sFormats {
 
   object CellSerializer extends CustomSerializer[Cell](_ ⇒ (
     {
-      case JString(text) ⇒ ???
+      case _ ⇒ ???
     },
     {
       case cell: Cell ⇒ JString(cell.visibleStatus)
@@ -18,13 +18,22 @@ object Json4sFormats {
 
   object InstantSerializer extends CustomSerializer[Instant](_ ⇒ (
     {
-      case JString(text) ⇒ Instant.parse(text)
+      case _ ⇒ ???
     },
     {
       case instant: Instant ⇒ JString(instant.toString)
     }
   ))
 
-  implicit val formats = org.json4s.DefaultFormats + CellSerializer + InstantSerializer
+  object GameStatusSerializer extends CustomSerializer[GameStatus](_ ⇒ (
+    {
+      case _ ⇒ ???
+    },
+    {
+      case gameStatus: GameStatus ⇒ JString(gameStatus.name)
+    }
+  ))
+
+  implicit val formats = org.json4s.DefaultFormats + CellSerializer + InstantSerializer + GameStatusSerializer
 
 }

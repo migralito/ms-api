@@ -2,36 +2,59 @@ package minesweeper
 
 import java.time.Instant
 
-import scala.util.{Failure, Random, Success, Try}
+import scala.util.Random
 
+sealed abstract case class GameStatus(name: String)
+object New extends GameStatus("new")
+object Playing extends GameStatus("playing")
+object Killed extends GameStatus("killed")
+object Won extends GameStatus("won")
 
 case class Minesweeper(id: String,
                        creationDateTime: Instant = Instant.now(),
-                       status: String = "new",
-                       field: MinesweeperField = MinesweeperField(10, 10, 10))
+                       status: GameStatus = New,
+                       field: MinesweeperField = MinesweeperField(10, 10, 10)) {
+
+  def update(field: MinesweeperField, status: GameStatus = Playing): Minesweeper = copy(
+    creationDateTime = Instant.now(),
+    field = field,
+    status = status)
+}
 
 case class MinesweeperField(matrix: Matrix) {
 
   def updated(c: Coordinates, newCell: Cell): MinesweeperField =
     this.copy(matrix.updated(c.x, matrix(c.x) updated (c.y, newCell)))
 
-  def shovel(c: Coordinates): Try[(MinesweeperField, Seq[Coordinates])] =
-    elementAt(c).shovel flatMap { cell: Cell ⇒
-      val partialResult = Try((updated(c, cell), Seq.empty[Coordinates]))
+  def markBomb(c: Coordinates): MoveResult =
+    elementAt(c).markBomb map (cell ⇒ (updated(c, cell), Seq.empty[Coordinates]))
+
+  def markQuestion(c: Coordinates): MoveResult =
+    elementAt(c).markQuestion map (cell ⇒ (updated(c, cell), Seq.empty[Coordinates]))
+
+  def clearMark(c: Coordinates): MoveResult =
+    elementAt(c).clearMark map (cell ⇒ (updated(c, cell), Seq.empty[Coordinates]))
+
+  def shovel(c: Coordinates): MoveResult =
+    elementAt(c).shovel.fold({
+      case BoomFailure(cell: Cell) ⇒ Left(BoomFailure(updated(c, cell)))
+      case f ⇒ Left(f)
+    }, { cell: Cell ⇒
+      val partialResult: MoveResult = Right((updated(c, cell), Seq.empty[Coordinates]))
 
       if (cell.bombsSurrounding > 0) {
         partialResult
       } else {
         contiguous(c).foldLeft(partialResult) {
-          case (f @ Failure(_), _) ⇒ f
-          case (Success((mutatingField, cs)), _c) ⇒
+          case (f @ Left(_), _) ⇒ f
+          case (Right((mutatingField, cs)), _c) ⇒
             if (mutatingField.elementAt(_c).concealed)
               mutatingField.shovel(_c) map { case (field, changedCells) ⇒ (field, cs ++ changedCells) }
             else
-              Success((mutatingField,cs))
+              Right((mutatingField,cs))
         }
       }
-    }
+    })
 
   private def elementAt(coordinates: Coordinates): Cell = matrix(coordinates.x)(coordinates.y)
 
@@ -76,17 +99,17 @@ object MinesweeperField {
   def virgin(width: Int, height: Int): MinesweeperField = Seq.fill(width, height)(Underlying())
 
   def concealed(field: MinesweeperField): MinesweeperField =
-    field.copy(matrix = field.matrix.map(_.map { case u: Underlying ⇒ Unknown(u) }))
+    field.copy(matrix = field.matrix.map(_.collect { case u: Underlying ⇒ Unknown(u) }))
 }
 
 sealed trait Cell {
   val concealed: Boolean
   def hasBomb: Boolean
   def bombsSurrounding: Int
-  def markBomb: Try[Cell]
-  def markQuestion: Try[Cell]
-  def clearMark: Try[Cell]
-  def shovel: Try[Cell]
+  def markBomb: Either[MoveFailure, Cell]
+  def markQuestion: Either[MoveFailure, Cell]
+  def clearMark: Either[MoveFailure, Cell]
+  def shovel: Either[MoveFailure, Cell]
   def visibleStatus: String
 }
 
@@ -95,17 +118,17 @@ object Cell {
 }
 
 case class Underlying(hasBomb: Boolean = false, bombsSurrounding: Int = 0) extends Cell {
-  def shovelledSpotFailure = Failure(new IllegalArgumentException("Shovelled spot"))
+  def shovelledSpotFailure = Left(ShovelledSpotFailure)
 
   override val concealed: Boolean = false
 
-  override def markBomb: Try[Cell] = shovelledSpotFailure
+  override def markBomb: Either[MoveFailure, Cell] = shovelledSpotFailure
 
-  override def markQuestion: Try[Cell] = shovelledSpotFailure
+  override def markQuestion: Either[MoveFailure, Cell] = shovelledSpotFailure
 
-  override def clearMark: Try[Cell] = shovelledSpotFailure
+  override def clearMark: Either[MoveFailure, Cell] = shovelledSpotFailure
 
-  override def shovel: Try[Cell] = shovelledSpotFailure
+  override def shovel: Either[MoveFailure, Cell] = shovelledSpotFailure
 
   override def visibleStatus: String = if (hasBomb) "bomb" else bombsSurrounding.toString
 }
@@ -118,38 +141,38 @@ trait CellConcealment extends Cell {
 }
 
 case class Unknown(decorated: Underlying) extends CellConcealment {
-  override def markBomb: Try[Cell] = Success(BombMark(decorated))
+  override def markBomb: Either[MoveFailure, Cell] = Right(BombMark(decorated))
 
-  override def markQuestion: Try[Cell] = Success(QuestionMark(decorated))
+  override def markQuestion: Either[MoveFailure, Cell] = Right(QuestionMark(decorated))
 
-  override def clearMark: Try[Cell] = Success(this)
+  override def clearMark: Either[MoveFailure, Cell] = Right(this)
 
-  override def shovel: Try[Cell] = if (hasBomb) Failure(BombException) else Success(decorated)
+  override def shovel: Either[MoveFailure, Cell] = if (hasBomb) Left(BoomFailure(decorated)) else Right(decorated)
 
   override def visibleStatus: String = "unknown"
 }
 
 case class BombMark(decorated: Underlying) extends CellConcealment {
-  override def markBomb: Try[Cell] = Success(this)
+  override def markBomb: Either[MoveFailure, Cell] = Right(this)
 
-  override def markQuestion: Try[Cell] = Success(QuestionMark(decorated))
+  override def markQuestion: Either[MoveFailure, Cell] = Right(QuestionMark(decorated))
 
-  override def clearMark: Try[Cell] = Success(Unknown(decorated))
+  override def clearMark: Either[MoveFailure, Cell] = Right(Unknown(decorated))
 
-  override def shovel: Try[Cell] = Failure(new IllegalArgumentException("Spot marked"))
+  override def shovel: Either[MoveFailure, Cell] = Left(MarkedSpotFailure)
 
   override def visibleStatus: String = "bomb mark"
 }
 
 case class QuestionMark(decorated: Underlying) extends CellConcealment {
 
-  override def markBomb: Try[Cell] = Success(BombMark(decorated))
+  override def markBomb: Either[MoveFailure, Cell] = Right(BombMark(decorated))
 
-  override def markQuestion: Try[Cell] = Success(this)
+  override def markQuestion: Either[MoveFailure, Cell] = Right(this)
 
-  override def clearMark: Try[Cell] = Success(Unknown(decorated))
+  override def clearMark: Either[MoveFailure, Cell] = Right(Unknown(decorated))
 
-  override def shovel: Try[Cell] = Failure(new IllegalArgumentException("Spot marked"))
+  override def shovel: Either[MoveFailure, Cell] = Left(MarkedSpotFailure)
 
   override def visibleStatus: String = "question mark"
 }

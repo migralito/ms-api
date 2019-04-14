@@ -21,7 +21,7 @@ trait Json4sEntityMarshalling {
       .forContentTypes(ContentTypeRange(ContentTypes.`application/json`))
       .mapWithCharset {
         case (ByteString.empty, _) => throw Unmarshaller.NoContentException
-        case (data, charset)       => data.decodeString(charset.nioCharset.name)
+        case (data, charset) => data.decodeString(charset.nioCharset.name)
       }
 
   protected val jsonStringMarshaller: ToEntityMarshaller[String] =
@@ -36,9 +36,11 @@ trait Json4sEntityMarshalling {
   implicit def jsonFromEntityUnmarshaller[A: Manifest](implicit formats: Formats): FromEntityUnmarshaller[A] =
     jsonStringUnmarshaller
       .map(s => parse(s).camelizeKeys.extract[A])
-      .recover { _ => _ => {
-        case MappingException(_, ite: InvocationTargetException) => throw ite.getCause
-      } }
+      .recover { _ =>
+        _ => {
+          case MappingException(_, ite: InvocationTargetException) => throw ite.getCause
+        }
+      }
 
   /**
     * `A` => HTTP entity

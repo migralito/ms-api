@@ -1,0 +1,6 @@
+package minesweeper
+
+case class BoomException(maybeMinesweeperField: MinesweeperField) extends RuntimeException
+object BoomException extends RuntimeException
+object ShovelledSpotException extends IllegalArgumentException
+object MarkedSpotException extends IllegalArgumentException
