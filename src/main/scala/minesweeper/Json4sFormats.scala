@@ -2,8 +2,8 @@ package minesweeper
 
 import java.time.Instant
 
-import org.json4s.CustomSerializer
 import org.json4s.JsonAST._
+import org.json4s.{CustomSerializer, Extraction}
 
 object Json4sFormats {
 
@@ -34,6 +34,14 @@ object Json4sFormats {
     }
   ))
 
-  implicit val formats = org.json4s.DefaultFormats + CellSerializer + InstantSerializer + GameStatusSerializer
+  object MinesweeperFieldSerializer extends CustomSerializer[MinesweeperField](implicit formats ⇒ (
+    {
+      case _ ⇒ ???
+    },
+    {
+      case field: MinesweeperField ⇒ Extraction.decompose(field.matrix)
+    }
+  ))
 
+  implicit val formats = org.json4s.DefaultFormats + CellSerializer + InstantSerializer + GameStatusSerializer + MinesweeperFieldSerializer
 }

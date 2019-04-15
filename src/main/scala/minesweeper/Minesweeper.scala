@@ -12,51 +12,46 @@ object Won extends GameStatus("won")
 
 case class Minesweeper(id: String,
                        creationDateTime: Instant = Instant.now(),
+                       updatedDateTime: Instant = Instant.now(),
                        status: GameStatus = New,
                        field: MinesweeperField = MinesweeperField(10, 10, buildRandomBombsCoordinates(10, 10, 10))) {
 
   def update(field: MinesweeperField, status: GameStatus = Playing): Minesweeper = copy(
-    creationDateTime = Instant.now(),
+    updatedDateTime = Instant.now(),
     field = field,
     status = status)
 }
 
 case class MinesweeperField(matrix: Matrix) {
 
-  def updated(c: Coordinates, newCell: Cell): MinesweeperField =
-    this.copy(matrix.updated(c.x, matrix(c.x) updated (c.y, newCell)))
-
   def markBomb(c: Coordinates): MoveResult =
-    elementAt(c).markBomb map (cell ⇒ (updated(c, cell), Seq.empty[Coordinates]))
+    elementAt(c).markBomb map (cell ⇒ (updated(c, cell), Seq((c, cell))))
 
   def markQuestion(c: Coordinates): MoveResult =
-    elementAt(c).markQuestion map (cell ⇒ (updated(c, cell), Seq.empty[Coordinates]))
+    elementAt(c).markQuestion map (cell ⇒ (updated(c, cell), Seq((c, cell))))
 
   def clearMark(c: Coordinates): MoveResult =
-    elementAt(c).clearMark map (cell ⇒ (updated(c, cell), Seq.empty[Coordinates]))
+    elementAt(c).clearMark map (cell ⇒ (updated(c, cell), Seq((c, cell))))
 
   def shovel(c: Coordinates): MoveResult =
     elementAt(c).shovel.fold({
       case BoomFailure(cell: Cell) ⇒ Left(BoomFailure(updated(c, cell)))
       case f ⇒ Left(f)
     }, { cell: Cell ⇒
-      val partialResult: MoveResult = Right((updated(c, cell), Seq.empty[Coordinates]))
-
-      if (cell.bombsSurrounding > 0) {
-        partialResult
-      } else {
-        contiguous(c).foldLeft(partialResult) {
-          case (f @ Left(_), _) ⇒ f
-          case (Right((mutatingField, cs)), _c) ⇒
-            if (mutatingField.elementAt(_c).concealed)
-              mutatingField.shovel(_c) map { case (field, changedCells) ⇒ (field, cs ++ changedCells) }
-            else
-              Right((mutatingField,cs))
-        }
+      val coordinatesToExpand = if (cell.bombsSurrounding == 0) contiguous(c) else Seq.empty
+      coordinatesToExpand.foldLeft[MoveResult] {
+        Right((updated(c, cell), Seq((c, cell))))
+      } {
+        case (f @ Left(_), _) ⇒ f
+        case (Right((_field, cs)), _c) if ! _field.elementAt(_c).concealed ⇒ Right((_field,cs))
+        case (Right((_field, cs)), _c) ⇒ _field.shovel(_c) map { case (field, changedCells) ⇒ (field, cs ++ changedCells) }
       }
     })
 
-  private def elementAt(coordinates: Coordinates): Cell = matrix(coordinates.x)(coordinates.y)
+  def elementAt(coordinates: Coordinates): Cell = matrix(coordinates.x)(coordinates.y)
+
+  private def updated(c: Coordinates, newCell: Cell): MinesweeperField =
+    this.copy(matrix.updated(c.x, matrix(c.x) updated (c.y, newCell)))
 
   private def contiguous(coordinates: Coordinates): Seq[Coordinates] =
     coordinates.adjacents.filter { c ⇒

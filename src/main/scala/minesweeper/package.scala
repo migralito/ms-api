@@ -1,17 +1,39 @@
 import minesweeper.MinesweeperField.random
 
 package object minesweeper {
-  type Matrix = Seq[Seq[Cell]]
-  type MoveResult = Either[MoveFailure, (MinesweeperField, Seq[Coordinates])]
 
-  sealed trait MoveType
-  case class SuccessMove(minesweeper: Minesweeper, changedRows: Seq[Coordinates]) extends MoveType
-  object NoChangeMove extends MoveType
+  // /////////////////////////////////////////////////////
+  // SERVICE LAYER OUTPUT: ServiceResult
+  // /////////////////////////////////////////////////////
+
+  sealed trait ServiceResult {
+    val minesweeper: Minesweeper
+  }
+  case class SuccessMove(override val minesweeper: Minesweeper, cellChanges: Seq[CellChange]) extends ServiceResult
+  case class IllegalMove(failure: MoveFailure, override val minesweeper: Minesweeper) extends ServiceResult
+  case class GameAlreadyEnded(override val minesweeper: Minesweeper) extends ServiceResult
+
+  case class CellChange(coordinates: Coordinates, cell: Cell)
+  object CellChange {
+    implicit def fromTuple(t: (Coordinates, Cell)): CellChange = CellChange(t._1, t._2)
+  }
+
+  // /////////////////////////////////////////////////////
+  // MODEL LAYER OUTPUT: MoveResult
+  // /////////////////////////////////////////////////////
+
+  type MoveResult = Either[MoveFailure, (MinesweeperField, Seq[CellChange])]
 
   sealed trait MoveFailure
   case class BoomFailure[T](t: T) extends MoveFailure
   object ShovelledSpotFailure extends MoveFailure
   object MarkedSpotFailure extends MoveFailure
+
+  // /////////////////////////////////////////////////////
+  // GENERAL
+  // /////////////////////////////////////////////////////
+
+  type Matrix = Seq[Seq[Cell]]
 
   case class Coordinates(x: Int, y: Int) {
     def adjacents: Seq[Coordinates] =

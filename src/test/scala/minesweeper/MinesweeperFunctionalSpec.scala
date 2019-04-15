@@ -1,6 +1,6 @@
 package minesweeper
 
-import akka.http.scaladsl.model.StatusCodes.{NoContent, OK}
+import akka.http.scaladsl.model.StatusCodes.{BadRequest, OK}
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import minesweeper.Json4sFormats.formats
@@ -28,7 +28,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"      , "0"      , "1"      , "unknown"),
           Seq("0"      , "1"      , "1"      , "2"      , "unknown"),
           Seq("1"      , "2"      , "unknown", "unknown", "unknown"),
@@ -39,7 +39,17 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
       // shovelling again same spot should return 204
       post("/0,0/shovel") ~> route ~> check {
-        status shouldBe NoContent
+        status shouldBe BadRequest
+
+        val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
+          Seq("0"      , "0"      , "0"      , "1"      , "unknown"),
+          Seq("0"      , "1"      , "1"      , "2"      , "unknown"),
+          Seq("1"      , "2"      , "unknown", "unknown", "unknown"),
+          Seq("unknown", "unknown", "unknown", "unknown", "unknown"),
+          Seq("unknown", "unknown", "unknown", "unknown", "unknown")
+        )
       }
 
       // just checking board
@@ -48,7 +58,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "status").extract[String] shouldBe "playing"
-        (ast \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"      , "0"      , "1"      , "unknown"),
           Seq("0"      , "1"      , "1"      , "2"      , "unknown"),
           Seq("1"      , "2"      , "unknown", "unknown", "unknown"),
@@ -63,7 +73,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"      , "0"        , "1"      , "unknown"),
           Seq("0"      , "1"      , "1"        , "2"      , "unknown"),
           Seq("1"      , "2"      , "bomb mark", "unknown", "unknown"),
@@ -78,7 +88,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"            , "0"        , "1"      , "unknown"),
           Seq("0"      , "1"            , "1"        , "2"      , "unknown"),
           Seq("1"      , "2"            , "bomb mark", "unknown", "unknown"),
@@ -93,7 +103,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"      , "0"        , "1"      , "unknown"),
           Seq("0"      , "1"      , "1"        , "2"      , "unknown"),
           Seq("1"      , "2"      , "bomb mark", "unknown", "unknown"),
@@ -107,7 +117,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"      , "0"        , "1"      , "unknown"),
           Seq("0"      , "1"      , "1"        , "2"      , "unknown"),
           Seq("1"      , "2"      , "bomb mark", "2"      , "unknown"),
@@ -121,7 +131,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"      , "0"        , "1"      , "unknown"),
           Seq("0"      , "1"      , "1"        , "2"      , "unknown"),
           Seq("1"      , "2"      , "bomb mark", "2"      , "1"      ),
@@ -135,7 +145,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"      , "0"        , "1"      , "unknown"),
           Seq("0"      , "1"      , "1"        , "2"      , "unknown"),
           Seq("1"      , "2"      , "bomb mark", "2"      , "1"      ),
@@ -149,7 +159,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"      , "0"        , "1"      , "unknown"),
           Seq("0"      , "1"      , "1"        , "2"      , "unknown"),
           Seq("1"      , "2"      , "bomb mark", "2"      , "1"      ),
@@ -163,7 +173,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"      , "0"        , "1"      , "unknown"),
           Seq("0"      , "1"      , "1"        , "2"      , "unknown"),
           Seq("1"      , "2"      , "bomb mark", "2"      , "1"      ),
@@ -177,7 +187,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"      , "0"        , "1"      , "unknown"),
           Seq("0"      , "1"      , "1"        , "2"      , "unknown"),
           Seq("1"      , "2"      , "bomb mark", "2"      , "1"      ),
@@ -191,7 +201,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"      , "0"        , "1"      , "unknown"),
           Seq("0"      , "1"      , "1"        , "2"      , "unknown"),
           Seq("1"      , "2"      , "bomb mark", "2"      , "1"      ),
@@ -205,7 +215,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"        , "0"      , "0"        , "1"      , "unknown"),
           Seq("0"        , "1"      , "1"        , "2"      , "unknown"),
           Seq("1"        , "2"      , "bomb mark", "2"      , "1"      ),
@@ -219,7 +229,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"        , "0"      , "0"        , "1"      , "unknown"),
           Seq("0"        , "1"      , "1"        , "2"      , "unknown"),
           Seq("1"        , "2"      , "bomb mark", "2"      , "1"      ),
@@ -233,7 +243,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"        , "0"      , "0"        , "1"      , "1"      ),
           Seq("0"        , "1"      , "1"        , "2"      , "unknown"),
           Seq("1"        , "2"      , "bomb mark", "2"      , "1"      ),
@@ -247,7 +257,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"        , "0"      , "0"        , "1"      , "1"        ),
           Seq("0"        , "1"      , "1"        , "2"      , "bomb mark"),
           Seq("1"        , "2"      , "bomb mark", "2"      , "1"        ),
@@ -261,7 +271,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
 
         val ast = JsonMethods.parse(responseAs[String])
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
-        (ast \ "minesweeper" \ "field" \ "matrix").extract[Seq[Seq[String]]] shouldBe Seq(
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"        , "0"      , "0"        , "1"      , "1"        ),
           Seq("0"        , "1"      , "1"        , "2"      , "bomb mark"),
           Seq("1"        , "2"      , "bomb mark", "2"      , "1"        ),

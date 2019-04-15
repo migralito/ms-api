@@ -91,9 +91,9 @@ class RestAPI(minesweeperService: MinesweeperService) extends Json4sEntityMarsha
         }
     }
 
-  implicit def moveResultToResponseMarshaller: ToResponseMarshaller[MoveType] =
-    fromStatusCodeAndValue[Int, MoveType] compose { t ⇒
-      val status = t match { case _: SuccessMove ⇒ 200; case NoChangeMove ⇒ 204 }
+  implicit def moveResultToResponseMarshaller: ToResponseMarshaller[ServiceResult] =
+    fromStatusCodeAndValue[Int, ServiceResult] compose { t ⇒
+      val status = t match { case _: SuccessMove ⇒ 200; case _: IllegalMove ⇒ 400; case _: GameAlreadyEnded ⇒ 409 }
       (status, t)
     }
 }

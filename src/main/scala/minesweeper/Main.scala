@@ -4,7 +4,8 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 
-import scala.io.StdIn
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 object Main {
 
@@ -15,12 +16,10 @@ object Main {
     implicit val executionContext = system.dispatcher
 
     val minesweeperService = new MinesweeperService()
-    val bindingFuture = Http().bindAndHandle(new RestAPI(minesweeperService).route, "localhost", 8080)
+    Http().bindAndHandle(new RestAPI(minesweeperService).route, "localhost", 8080)
 
-    println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
-    StdIn.readLine() // let it run until user presses return
-    bindingFuture
-      .flatMap(_.unbind()) // trigger unbinding from the port
-      .onComplete(_ => system.terminate()) // and shutdown when done
+    Await.ready(Future.never, Duration.Inf)
   }
+
+  // dynamo AKIAYYB7IBPRJUSJN5QT:OehSYnVdSSm9WM9sXYyto0uxD6NYVMps/CazZ0z/
 }
