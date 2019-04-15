@@ -277,7 +277,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
         status shouldBe OK
 
         val ast = JsonMethods.parse(responseAs[String])
-        (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
+        (ast \ "minesweeper" \ "status").extract[String] shouldBe "won"
         (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"        , "0"      , "0"        , "1"      , "1"        ),
           Seq("0"        , "1"      , "1"        , "2"      , "bomb mark"),

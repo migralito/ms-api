@@ -27,27 +27,36 @@ class MinesweeperService(minesweeperProvider: MinesweeperProvider) {
   // INTERNAL METHODS
   // /////////////////////////////////////////////////////
 
-  private def move(id: String, c: Coordinates, f: Minesweeper ⇒ MoveResult): ServiceResult = {
+  private def move(id: String, c: Coordinates, theMove: Minesweeper ⇒ MoveResult): ServiceResult = {
     minesweeperProvider.get(id).map { minesweeper ⇒
-      f(minesweeper)
-        .map { case (field, changedCoordinates) ⇒
-          val updatedMinesweeper = minesweeper.update(field)
-          minesweeperProvider.update(id, updatedMinesweeper)
-          (updatedMinesweeper, changedCoordinates)
-        }
-        .fold({
-          case ShovelledSpotFailure ⇒ IllegalMove(ShovelledSpotFailure, minesweeper)
-          case MarkedSpotFailure ⇒ IllegalMove(MarkedSpotFailure, minesweeper)
-          case BoomFailure(field: MinesweeperField) ⇒
-            val updatedMinesweeper = minesweeper.update(field, Killed)
-            minesweeperProvider.update(id, updatedMinesweeper)
-            SuccessMove(updatedMinesweeper, Seq((c, field elementAt c)))
-          case failure ⇒ throw new RuntimeException(s"Unexpected failure $failure")
-        }, {
-          case (ms, cs) ⇒ SuccessMove(ms, cs)
-        })
+      asServiceResult(id, minesweeper, c) {
+        theMove(minesweeper) map updateGame(id, minesweeper)
+      }
     }.getOrElse {
       MinesweeperNotFound
     }
   }
+
+  private def updateGame(id: String, minesweeper: Minesweeper): ((MinesweeperField, Seq[CellChange])) ⇒ (Minesweeper, Seq[CellChange]) = {
+    case (field, changedCoordinates) ⇒
+      val gameStatus = if (field.onlyBombsLeft) Won else Playing
+      val updatedMinesweeper = minesweeper.update(field, gameStatus)
+      minesweeperProvider.update(id, updatedMinesweeper)
+      (updatedMinesweeper, changedCoordinates)
+  }
+
+  private def asServiceResult(id: String, minesweeper: Minesweeper, c: Coordinates)
+                             (partialResult: Either[MoveFailure, (Minesweeper, Seq[CellChange])]): ServiceResult =
+    partialResult.fold({
+      case ShovelledSpotFailure ⇒ IllegalMove(ShovelledSpotFailure, minesweeper)
+      case MarkedSpotFailure ⇒ IllegalMove(MarkedSpotFailure, minesweeper)
+      case BoomFailure(field: MinesweeperField) ⇒
+        val updatedMinesweeper = minesweeper.update(field, Killed)
+        minesweeperProvider.update(id, updatedMinesweeper)
+        SuccessMove(updatedMinesweeper, Seq((c, field elementAt c)))
+      case failure ⇒ throw new RuntimeException(s"Unexpected failure $failure")
+    }, {
+      case (ms, cs) ⇒ SuccessMove(ms, cs)
+    })
+
 }

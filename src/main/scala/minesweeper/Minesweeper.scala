@@ -31,6 +31,7 @@ case class Minesweeper(id: String,
 }
 
 case class MinesweeperField(matrix: Matrix) {
+  def onlyBombsLeft: Boolean = !matrix.exists(_.exists(c ⇒ c.concealed && !c.hasBomb))
 
   def markBomb(c: Coordinates): MoveResult =
     elementAt(c).markBomb map (cell ⇒ (updated(c, cell), Seq((c, cell))))
