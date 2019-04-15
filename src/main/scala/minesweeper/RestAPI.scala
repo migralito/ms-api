@@ -47,7 +47,7 @@ import org.json4s.Formats
   * Success status code: 200
   */
 class RestAPI(minesweeperService: MinesweeperService) extends Json4sEntityMarshalling {
-  implicit val formats: Formats = Json4sFormats.formats
+  implicit val formats: Formats = Json4sFormats.apiFormats
 
   def route: Route =
     pathPrefix("minesweepers") {
@@ -93,7 +93,12 @@ class RestAPI(minesweeperService: MinesweeperService) extends Json4sEntityMarsha
 
   implicit def moveResultToResponseMarshaller: ToResponseMarshaller[ServiceResult] =
     fromStatusCodeAndValue[Int, ServiceResult] compose { t ⇒
-      val status = t match { case _: SuccessMove ⇒ 200; case _: IllegalMove ⇒ 400; case _: GameAlreadyEnded ⇒ 409 }
+      val status = t match {
+        case _: SuccessMove ⇒ 200
+        case _: IllegalMove ⇒ 400
+        case _: GameAlreadyEnded ⇒ 409
+        case MinesweeperNotFound ⇒ 404
+      }
       (status, t)
     }
 }

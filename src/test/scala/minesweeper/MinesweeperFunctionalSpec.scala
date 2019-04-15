@@ -3,12 +3,19 @@ package minesweeper
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, OK}
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import minesweeper.Json4sFormats.formats
+import minesweeper.Json4sFormats.apiFormats
 import org.json4s.jackson.JsonMethods
 import org.scalatest.{Matchers, WordSpec}
 
+import scala.collection.mutable
+
 class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRouteTest {
-  private val service = new MinesweeperService
+  private val service = new MinesweeperService(new MinesweeperProvider {
+    private val minesweepers = mutable.Map.empty[String, Minesweeper]
+    override def put(id: String, minesweeper: Minesweeper): Unit = minesweepers.put(id, minesweeper)
+    override def update(id: String, minesweeper: Minesweeper): Unit = minesweepers.update(id, minesweeper)
+    override def get(id: String): Option[Minesweeper] = minesweepers.get(id)
+  })
   private val route = Route.seal(new RestAPI(service).route)
 
   "Happy path" should {

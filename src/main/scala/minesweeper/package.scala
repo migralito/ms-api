@@ -6,12 +6,11 @@ package object minesweeper {
   // SERVICE LAYER OUTPUT: ServiceResult
   // /////////////////////////////////////////////////////
 
-  sealed trait ServiceResult {
-    val minesweeper: Minesweeper
-  }
-  case class SuccessMove(override val minesweeper: Minesweeper, cellChanges: Seq[CellChange]) extends ServiceResult
-  case class IllegalMove(failure: MoveFailure, override val minesweeper: Minesweeper) extends ServiceResult
-  case class GameAlreadyEnded(override val minesweeper: Minesweeper) extends ServiceResult
+  sealed trait ServiceResult
+  case class SuccessMove(minesweeper: Minesweeper, cellChanges: Seq[CellChange]) extends ServiceResult
+  case class IllegalMove(failure: MoveFailure, minesweeper: Minesweeper) extends ServiceResult
+  case class GameAlreadyEnded(minesweeper: Minesweeper) extends ServiceResult
+  object MinesweeperNotFound extends ServiceResult
 
   case class CellChange(coordinates: Coordinates, cell: Cell)
   object CellChange {

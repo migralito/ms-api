@@ -9,6 +9,14 @@ object New extends GameStatus("new")
 object Playing extends GameStatus("playing")
 object Killed extends GameStatus("killed")
 object Won extends GameStatus("won")
+object GameStatus {
+  def apply(str: String): GameStatus = str match {
+    case "new" ⇒ New
+    case "playing" ⇒ Playing
+    case "killed" ⇒ Killed
+    case "won" ⇒ Won
+  }
+}
 
 case class Minesweeper(id: String,
                        creationDateTime: Instant = Instant.now(),

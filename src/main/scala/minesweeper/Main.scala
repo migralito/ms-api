@@ -15,11 +15,9 @@ object Main {
     // needed for the future flatMap/onComplete in the end
     implicit val executionContext = system.dispatcher
 
-    val minesweeperService = new MinesweeperService()
-    Http().bindAndHandle(new RestAPI(minesweeperService).route, "localhost", 8080)
+    val minesweeperService = new MinesweeperService(new DynamoMinesweepersProvider)
+    Http().bindAndHandle(new RestAPI(minesweeperService).route, "0.0.0.0", 80)
 
     Await.ready(Future.never, Duration.Inf)
   }
-
-  // dynamo AKIAYYB7IBPRJUSJN5QT:OehSYnVdSSm9WM9sXYyto0uxD6NYVMps/CazZ0z/
 }

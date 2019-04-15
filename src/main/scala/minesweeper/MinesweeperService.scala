@@ -1,21 +1,19 @@
 package minesweeper
 
-import scala.collection.mutable
 import scala.util.Random
 
-class MinesweeperService {
+class MinesweeperService(minesweeperProvider: MinesweeperProvider) {
 
   private val random = new Random
-  private val minesweepers = mutable.Map.empty[String, Minesweeper]
 
   def create(maybeMinesweeperField: Option[MinesweeperField] = None): Minesweeper = {
     val id = random.alphanumeric.take(10).mkString
     val minesweeper = maybeMinesweeperField.fold(Minesweeper(id)) { field ⇒ Minesweeper(id, field = field) }
-    minesweepers.put(id, minesweeper)
+    minesweeperProvider.put(id, minesweeper)
     minesweeper
   }
 
-  def get(id: String): Option[Minesweeper] = minesweepers.get(id)
+  def get(id: String): Option[Minesweeper] = minesweeperProvider.get(id)
 
   def bombMark(id: String, c: Coordinates): ServiceResult = move(id, c, _.field.markBomb(c))
 
@@ -25,24 +23,31 @@ class MinesweeperService {
 
   def shovel(id: String, c: Coordinates): ServiceResult = move(id, c, _.field.shovel(c))
 
-  def move(id: String, c: Coordinates, f: Minesweeper ⇒ MoveResult): ServiceResult = {
-    val minesweeper = minesweepers(id)
-    f(minesweeper)
-      .map { case (field, changedCoordinates) ⇒
-        val updatedMinesweeper = minesweeper.update(field)
-        minesweepers.update(id, updatedMinesweeper)
-        (updatedMinesweeper, changedCoordinates)
-      }
-      .fold ({
-        case ShovelledSpotFailure ⇒ IllegalMove(ShovelledSpotFailure, minesweeper)
-        case MarkedSpotFailure ⇒ IllegalMove(MarkedSpotFailure, minesweeper)
-        case BoomFailure(field: MinesweeperField) ⇒
-          val updatedMinesweeper = minesweeper.update(field, Killed)
-          minesweepers.update(id, updatedMinesweeper)
-          SuccessMove(updatedMinesweeper, Seq((c, field elementAt c)))
-        case failure ⇒ throw new RuntimeException(s"Unexpected failure $failure")
-      }, {
-        case (ms, cs) ⇒ SuccessMove(ms, cs)
-      })
+  // /////////////////////////////////////////////////////
+  // INTERNAL METHODS
+  // /////////////////////////////////////////////////////
+
+  private def move(id: String, c: Coordinates, f: Minesweeper ⇒ MoveResult): ServiceResult = {
+    minesweeperProvider.get(id).map { minesweeper ⇒
+      f(minesweeper)
+        .map { case (field, changedCoordinates) ⇒
+          val updatedMinesweeper = minesweeper.update(field)
+          minesweeperProvider.update(id, updatedMinesweeper)
+          (updatedMinesweeper, changedCoordinates)
+        }
+        .fold({
+          case ShovelledSpotFailure ⇒ IllegalMove(ShovelledSpotFailure, minesweeper)
+          case MarkedSpotFailure ⇒ IllegalMove(MarkedSpotFailure, minesweeper)
+          case BoomFailure(field: MinesweeperField) ⇒
+            val updatedMinesweeper = minesweeper.update(field, Killed)
+            minesweeperProvider.update(id, updatedMinesweeper)
+            SuccessMove(updatedMinesweeper, Seq((c, field elementAt c)))
+          case failure ⇒ throw new RuntimeException(s"Unexpected failure $failure")
+        }, {
+          case (ms, cs) ⇒ SuccessMove(ms, cs)
+        })
+    }.getOrElse {
+      MinesweeperNotFound
+    }
   }
 }
