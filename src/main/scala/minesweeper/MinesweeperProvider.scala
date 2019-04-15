@@ -9,7 +9,7 @@ import org.json4s.jackson.{JsonMethods, Serialization}
 
 trait MinesweeperProvider {
   def put(id: String, minesweeper: Minesweeper): Unit
-  def update(id: String, minesweeper: Minesweeper): Unit
+  def update(minesweeper: Minesweeper): Unit
   def get(id: String): Option[Minesweeper]
 }
 
@@ -32,5 +32,5 @@ class DynamoMinesweepersProvider extends MinesweeperProvider {
       Extraction.extract[Minesweeper](ast)
     }
 
-  override def update(id: String, minesweeper: Minesweeper): Unit = put(id, minesweeper)
+  override def update(minesweeper: Minesweeper): Unit = put(minesweeper.id, minesweeper)
 }

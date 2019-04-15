@@ -7,10 +7,21 @@ package object minesweeper {
   // /////////////////////////////////////////////////////
 
   sealed trait ServiceResult
-  case class SuccessMove(minesweeper: Minesweeper, cellChanges: Seq[CellChange]) extends ServiceResult
+  case class SuccessMove(minesweeper: Minesweeper, cellChanges: Seq[CellChange] = Seq.empty) extends ServiceResult
   case class IllegalMove(failure: MoveFailure, minesweeper: Minesweeper) extends ServiceResult
-  case class GameAlreadyEnded(minesweeper: Minesweeper) extends ServiceResult
   object MinesweeperNotFound extends ServiceResult
+  sealed trait InvalidStateResult {
+    val reason: String
+  }
+  case class GameAlreadyEnded(minesweeper: Minesweeper) extends ServiceResult with InvalidStateResult {
+    override val reason: String = "game over"
+  }
+  object GamePaused extends ServiceResult with InvalidStateResult {
+    override val reason: String = "game paused"
+  }
+  object GameNotPaused extends ServiceResult with InvalidStateResult {
+    override val reason: String = "game not paused"
+  }
 
   case class CellChange(coordinates: Coordinates, cell: Cell)
   object CellChange {

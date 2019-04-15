@@ -64,6 +64,16 @@ class RestAPI(minesweeperService: MinesweeperService) extends Json4sEntityMarsha
               minesweeperService.get(id)
             }
           } ~
+            (post & path("pause")) {
+              complete {
+                minesweeperService.pause(id)
+              }
+            } ~
+            (post & path("resume")) {
+              complete {
+                minesweeperService.resume(id)
+              }
+            } ~
             pathPrefix("minefield" / IntNumber ~ "," ~ IntNumber) { (x,y) ⇒
               // POST /minesweepers/:id/x,y/shovel
               (post & path("shovel")) {
@@ -97,6 +107,7 @@ class RestAPI(minesweeperService: MinesweeperService) extends Json4sEntityMarsha
         case _: SuccessMove ⇒ 200
         case _: IllegalMove ⇒ 400
         case _: GameAlreadyEnded ⇒ 409
+        case GamePaused ⇒ 409
         case MinesweeperNotFound ⇒ 404
       }
       (status, t)

@@ -13,7 +13,7 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
   private val service = new MinesweeperService(new MinesweeperProvider {
     private val minesweepers = mutable.Map.empty[String, Minesweeper]
     override def put(id: String, minesweeper: Minesweeper): Unit = minesweepers.put(id, minesweeper)
-    override def update(id: String, minesweeper: Minesweeper): Unit = minesweepers.update(id, minesweeper)
+    override def update(minesweeper: Minesweeper): Unit = minesweepers.update(minesweeper.id, minesweeper)
     override def get(id: String): Option[Minesweeper] = minesweepers.get(id)
   })
   private val route = Route.seal(new RestAPI(service).route)

@@ -1,6 +1,6 @@
 package minesweeper
 
-import java.time.Instant
+import java.time.{Duration, Instant}
 
 import org.json4s.JsonAST._
 import org.json4s.{CustomSerializer, Extraction, ShortTypeHints}
@@ -18,6 +18,13 @@ object Json4sSerializers {
     case JString(s) ⇒ Instant.parse(s)
   }, {
     case instant: Instant ⇒ JString(instant.toString)
+  }
+  ))
+
+  object DurationSerializer extends CustomSerializer[Duration](_ ⇒ ( {
+    case JString(s) ⇒ Duration.parse(s)
+  }, {
+    case duration: Duration ⇒ JString(duration.toString)
   }
   ))
 
@@ -39,7 +46,8 @@ object Json4sSerializers {
 object Json4sFormats {
   import Json4sSerializers._
 
-  implicit val apiFormats = org.json4s.DefaultFormats + CellSerializer + InstantSerializer + GameStatusSerializer + MinesweeperFieldSerializer
+  implicit val apiFormats = org.json4s.DefaultFormats + CellSerializer + InstantSerializer + DurationSerializer +
+    GameStatusSerializer + MinesweeperFieldSerializer
 
   implicit val persistenceFormats = org.json4s.DefaultFormats
     .withHints(ShortTypeHints(List(
@@ -47,5 +55,5 @@ object Json4sFormats {
       classOf[Unknown],
       classOf[BombMark],
       classOf[QuestionMark]
-    ))) + InstantSerializer + GameStatusSerializer
+    ))) + InstantSerializer + DurationSerializer + GameStatusSerializer
 }

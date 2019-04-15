@@ -1,18 +1,20 @@
 package minesweeper
 
-import java.time.Instant
+import java.time.{Duration, Instant}
 
 import scala.util.Random
 
 sealed abstract case class GameStatus(name: String)
 object New extends GameStatus("new")
 object Playing extends GameStatus("playing")
+object Paused extends GameStatus("paused")
 object Killed extends GameStatus("killed")
 object Won extends GameStatus("won")
 object GameStatus {
   def apply(str: String): GameStatus = str match {
     case "new" ⇒ New
     case "playing" ⇒ Playing
+    case "paused" ⇒ Paused
     case "killed" ⇒ Killed
     case "won" ⇒ Won
   }
@@ -22,12 +24,22 @@ case class Minesweeper(id: String,
                        creationDateTime: Instant = Instant.now(),
                        updatedDateTime: Instant = Instant.now(),
                        status: GameStatus = New,
-                       field: MinesweeperField = MinesweeperField(10, 10, buildRandomBombsCoordinates(10, 10, 10))) {
+                       field: MinesweeperField = MinesweeperField(10, 10, buildRandomBombsCoordinates(10, 10, 10)),
+                       pauses: Seq[Duration] = Seq.empty) {
 
-  def update(field: MinesweeperField, status: GameStatus = Playing): Minesweeper = copy(
+  def update(field: MinesweeperField, status: GameStatus): Minesweeper = copy(
     updatedDateTime = Instant.now(),
     field = field,
     status = status)
+
+  def pause(): Minesweeper = copy(
+    updatedDateTime = Instant.now(),
+    status = Paused)
+
+  def resume(): Minesweeper = copy(
+    pauses = pauses :+ Duration.between(updatedDateTime, Instant.now()),
+    updatedDateTime = Instant.now(),
+    status = Playing)
 }
 
 case class MinesweeperField(matrix: Matrix) {
