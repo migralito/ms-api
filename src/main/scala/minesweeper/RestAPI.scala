@@ -108,6 +108,7 @@ class RestAPI(minesweeperService: MinesweeperService) extends Json4sEntityMarsha
         case _: IllegalMove ⇒ 400
         case _: GameAlreadyEnded ⇒ 409
         case GamePaused ⇒ 409
+        case GameNotPaused ⇒ 409
         case MinesweeperNotFound ⇒ 404
       }
       (status, t)

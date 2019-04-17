@@ -41,13 +41,35 @@ object Json4sSerializers {
     case field: MinesweeperField ⇒ Extraction.decompose(field.matrix)
   }
   ))
+
+  object MinesweeperNotFoundSerializer extends CustomSerializer[MinesweeperNotFound.type](implicit formats ⇒ ( {
+    case _ ⇒ ???
+  }, {
+    case MinesweeperNotFound ⇒ JString("Minesweeper with given id not found")
+  }
+  ))
+
+  object GamePausedSerializer extends CustomSerializer[GamePaused.type](implicit formats ⇒ ( {
+    case _ ⇒ ???
+  }, {
+    case GamePaused ⇒ JObject("reason" -> JString(GamePaused.reason))
+  }
+  ))
+
+  object GameNotPausedSerializer extends CustomSerializer[GameNotPaused.type](implicit formats ⇒ ( {
+    case _ ⇒ ???
+  }, {
+    case GameNotPaused ⇒ JObject("reason" -> JString(GameNotPaused.reason))
+  }
+  ))
 }
 
 object Json4sFormats {
   import Json4sSerializers._
 
   implicit val apiFormats = org.json4s.DefaultFormats + CellSerializer + InstantSerializer + DurationSerializer +
-    GameStatusSerializer + MinesweeperFieldSerializer
+    GameStatusSerializer + MinesweeperFieldSerializer + MinesweeperNotFoundSerializer +
+    GamePausedSerializer + GameNotPausedSerializer
 
   implicit val persistenceFormats = org.json4s.DefaultFormats
     .withHints(ShortTypeHints(List(

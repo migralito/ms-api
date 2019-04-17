@@ -13,9 +13,7 @@ package object minesweeper {
   sealed trait InvalidStateResult {
     val reason: String
   }
-  case class GameAlreadyEnded(minesweeper: Minesweeper) extends ServiceResult with InvalidStateResult {
-    override val reason: String = "game over"
-  }
+  case class GameAlreadyEnded(minesweeper: Minesweeper, override val reason: String = "game over") extends ServiceResult with InvalidStateResult
   object GamePaused extends ServiceResult with InvalidStateResult {
     override val reason: String = "game paused"
   }

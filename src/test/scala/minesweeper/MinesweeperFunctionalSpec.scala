@@ -1,6 +1,6 @@
 package minesweeper
 
-import akka.http.scaladsl.model.StatusCodes.{BadRequest, OK}
+import akka.http.scaladsl.model.StatusCodes.{BadRequest, Conflict, OK}
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import minesweeper.Json4sFormats.apiFormats
@@ -285,6 +285,129 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
           Seq("bomb mark", "2"      , "1"        , "2"      , "1"        ),
           Seq("1"        , "1"      , "0"        , "1"      , "unknown"  )
         )
+      }
+    }
+  }
+
+  "Invalid moves" should {
+
+    // 0 0 0 1 1
+    // 0 1 1 2 *
+    // 1 2 * 2 1
+    // * 2 1 2 1
+    // 1 1 0 1 *
+    val id = service.create(Some(MinesweeperField(5, 5, Seq((1, 4), (2, 2), (3, 0), (4, 4))))).id
+
+    def post(coordinatesAndMove: String) = Post(s"/minesweepers/$id/minefield$coordinatesAndMove")
+    val pause = Post(s"/minesweepers/$id/pause")
+    val resume = Post(s"/minesweepers/$id/resume")
+
+    "respond with 409 (Conflict)" in {
+
+      resume ~> route ~> check {
+        status shouldBe Conflict
+
+        responseAs[String] shouldBe """{"reason":"game not paused"}"""
+      }
+
+      post("/0,0/shovel") ~> route ~> check {
+        status shouldBe OK
+
+        val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
+          Seq("0", "0", "0", "1", "unknown"),
+          Seq("0", "1", "1", "2", "unknown"),
+          Seq("1", "2", "unknown", "unknown", "unknown"),
+          Seq("unknown", "unknown", "unknown", "unknown", "unknown"),
+          Seq("unknown", "unknown", "unknown", "unknown", "unknown")
+        )
+      }
+
+      resume ~> route ~> check {
+        status shouldBe Conflict
+
+        val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "reason").extract[String] shouldBe "game not paused"
+      }
+
+      // /////////////////////////////////////////////////////
+      // PAUSE AND CHECK REJECTIONS
+      // /////////////////////////////////////////////////////
+
+      pause ~> route ~> check {
+        status shouldBe OK
+
+        val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "minesweeper" \ "status").extract[String] shouldBe "paused"
+      }
+
+      post("/0,0/shovel") ~> route ~> check {
+        status shouldBe Conflict
+
+        val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "reason").extract[String] shouldBe "game paused"
+      }
+
+      post("/0,0/mark") ~> route ~> check {
+        status shouldBe Conflict
+
+        val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "reason").extract[String] shouldBe "game paused"
+      }
+
+      post("/0,0/mark?question") ~> route ~> check {
+        status shouldBe Conflict
+
+        val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "reason").extract[String] shouldBe "game paused"
+      }
+
+      pause ~> route ~> check {
+        status shouldBe Conflict
+
+        val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "reason").extract[String] shouldBe "game paused"
+      }
+
+      resume ~> route ~> check {
+        status shouldBe OK
+
+        val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
+        (ast \ "minesweeper" \ "pauses").extract[Seq[String]].size shouldBe 1
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
+          Seq("0", "0", "0", "1", "unknown"),
+          Seq("0", "1", "1", "2", "unknown"),
+          Seq("1", "2", "unknown", "unknown", "unknown"),
+          Seq("unknown", "unknown", "unknown", "unknown", "unknown"),
+          Seq("unknown", "unknown", "unknown", "unknown", "unknown")
+        )
+      }
+
+      // /////////////////////////////////////////////////////
+      // LETS DIE AND SEE IF WE GET REJECTED ON PLAYS
+      // /////////////////////////////////////////////////////
+
+      post("/1,4/shovel") ~> route ~> check {
+        status shouldBe OK
+
+        val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "minesweeper" \ "status").extract[String] shouldBe "killed"
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
+          Seq("0", "0", "0", "1", "unknown"),
+          Seq("0", "1", "1", "2", "bomb"),
+          Seq("1", "2", "unknown", "unknown", "unknown"),
+          Seq("unknown", "unknown", "unknown", "unknown", "unknown"),
+          Seq("unknown", "unknown", "unknown", "unknown", "unknown")
+        )
+      }
+
+      post("/0,4/shovel") ~> route ~> check {
+        status shouldBe Conflict
+
+        val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "reason").extract[String] shouldBe "game over"
       }
     }
   }
