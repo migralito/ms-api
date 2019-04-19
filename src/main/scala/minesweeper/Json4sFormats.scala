@@ -62,6 +62,20 @@ object Json4sSerializers {
     case GameNotPaused ⇒ JObject("reason" -> JString(GameNotPaused.reason))
   }
   ))
+
+  object ShovelledSpotFailureSerializer extends CustomSerializer[ShovelledSpotFailure.type](_ ⇒ ( {
+    case _ ⇒ ???
+  }, {
+    case ShovelledSpotFailure ⇒ JString("spot already shovelled")
+  }
+  ))
+
+  object MarkedSpotFailureSerializer extends CustomSerializer[MarkedSpotFailure.type](_ ⇒ ( {
+    case _ ⇒ ???
+  }, {
+    case MarkedSpotFailure ⇒ JString("can't shovel a marked spot")
+  }
+  ))
 }
 
 object Json4sFormats {
@@ -69,7 +83,7 @@ object Json4sFormats {
 
   implicit val apiFormats = org.json4s.DefaultFormats + CellSerializer + InstantSerializer + DurationSerializer +
     GameStatusSerializer + MinesweeperFieldSerializer + MinesweeperNotFoundSerializer +
-    GamePausedSerializer + GameNotPausedSerializer
+    GamePausedSerializer + GameNotPausedSerializer + ShovelledSpotFailureSerializer + MarkedSpotFailureSerializer
 
   implicit val persistenceFormats = org.json4s.DefaultFormats
     .withHints(ShortTypeHints(List(

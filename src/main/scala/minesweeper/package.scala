@@ -54,9 +54,14 @@ package object minesweeper {
     implicit def fromTuple(t: (Int, Int)): Coordinates = Coordinates(t._1, t._2)
   }
 
-  def buildRandomBombsCoordinates(width: Int, height: Int, q: Int): Seq[Coordinates] = {
-    Range(1, q).foldLeft(Seq.empty[Coordinates]) { case (xs, _) ⇒
-      xs :+ Coordinates(random.nextInt(width), random.nextInt(height))
-    }
+  def buildRandomBombsCoordinates(width: Int, height: Int, q: Int, bombs: Seq[Coordinates] = Seq.empty): Seq[Coordinates] = {
+    @scala.annotation.tailrec
+    def buildRandomBombs(bombs: Set[Coordinates]): Set[Coordinates] =
+      if (bombs.size == q)
+        bombs
+      else
+        buildRandomBombs(bombs + Coordinates(random.nextInt(width), random.nextInt(height)))
+
+    buildRandomBombs(Set.empty).toSeq
   }
 }

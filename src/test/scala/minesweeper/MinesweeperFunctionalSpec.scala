@@ -44,11 +44,12 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
         )
       }
 
-      // shovelling again same spot should return 204
+      // shovelling again same spot should return 400
       post("/0,0/shovel") ~> route ~> check {
         status shouldBe BadRequest
 
         val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "failure").extract[String] shouldBe "spot already shovelled"
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
         (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"      , "0"      , "1"      , "unknown"),
@@ -79,6 +80,22 @@ class MinesweeperFunctionalSpec extends WordSpec with Matchers with ScalatestRou
         status shouldBe OK
 
         val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
+        (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
+          Seq("0"      , "0"      , "0"        , "1"      , "unknown"),
+          Seq("0"      , "1"      , "1"        , "2"      , "unknown"),
+          Seq("1"      , "2"      , "bomb mark", "unknown", "unknown"),
+          Seq("unknown", "unknown", "unknown"  , "unknown", "unknown"),
+          Seq("unknown", "unknown", "unknown"  , "unknown", "unknown")
+        )
+      }
+
+      // shovelling a marked spot should return 400
+      post("/2,2/shovel") ~> route ~> check {
+        status shouldBe BadRequest
+
+        val ast = JsonMethods.parse(responseAs[String])
+        (ast \ "failure").extract[String] shouldBe "can't shovel a marked spot"
         (ast \ "minesweeper" \ "status").extract[String] shouldBe "playing"
         (ast \ "minesweeper" \ "field").extract[Seq[Seq[String]]] shouldBe Seq(
           Seq("0"      , "0"      , "0"        , "1"      , "unknown"),
